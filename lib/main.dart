@@ -90,6 +90,11 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
   double _puckSpeedX = 6.0;
   double _puckSpeedY = 6.0;
   double _cpuSpeed = 2.0;
+  bool _initialBounce = true;
+  bool _cpuHitPuck = false;
+  bool _movingBackward = false;
+
+  Offset _puckPositionBeforeHit = Offset(0, 0);
 
   @override
   void initState() {
@@ -138,11 +143,14 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
     }
 
     if (_checkCollision(_playerPosition, _puckPosition)) {
-      _puckSpeedY = -_puckSpeedY;
+      _bouncePuck(_playerPosition);
       newY = _puckPosition.dy + _puckSpeedY;
+      _cpuHitPuck = false;
     } else if (_checkCollision(_cpuPosition, _puckPosition)) {
-      _puckSpeedY = -_puckSpeedY;
-      newY = _puckPosition.dy + _puckSpeedY;
+      _puckPositionBeforeHit = _puckPosition;
+      _bouncePuck(_cpuPosition);
+      _cpuHitPuck = true;
+      _moveCpuBackward();
     }
 
     _puckPosition = Offset(newX, newY);
@@ -152,25 +160,68 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
     double dx = paddle.dx - puck.dx;
     double dy = paddle.dy - puck.dy;
     double distance = sqrt(dx * dx + dy * dy);
-    return distance < 35; // Collision distance
+    return distance < 35;
+  }
+
+  void _bouncePuck(Offset paddlePosition) {
+    double angle = atan2(_puckPosition.dy - paddlePosition.dy,
+        _puckPosition.dx - paddlePosition.dx);
+    if (_initialBounce) {
+      angle = (Random().nextDouble() * (60 - 30) + 30) * pi / 180;
+      _initialBounce = false;
+    }
+    _puckSpeedX = 6.0 * cos(angle);
+    _puckSpeedY = 6.0 * sin(angle);
+  }
+
+  void _moveCpuBackward() {
+    if (!_movingBackward) {
+      _movingBackward = true;
+      Timer.periodic(Duration(milliseconds: 20), (timer) {
+        setState(() {
+          _cpuPosition = Offset(_cpuPosition.dx, _cpuPosition.dy - 2);
+          if (_cpuPosition.dy <= 0) {
+            _movingBackward = false;
+            timer.cancel();
+            _moveCpuForward();
+          }
+        });
+      });
+    }
+  }
+
+  void _moveCpuForward() {
+    Timer.periodic(Duration(milliseconds: 10), (timer) {
+      setState(() {
+        _cpuPosition = Offset(_cpuPosition.dx, _cpuPosition.dy + 4);
+        if (_cpuPosition.dy >= 30) {
+          timer.cancel();
+        }
+      });
+    });
   }
 
   void _updateCpuPosition() {
+    if (_movingBackward || _cpuHitPuck) return;
+
+    double cpuMoveX = 0;
+    double cpuMoveY = 0;
+
     if (_cpuPosition.dx < _puckPosition.dx) {
-      _cpuPosition = Offset(_cpuPosition.dx + _cpuSpeed, _cpuPosition.dy);
-    } else {
-      _cpuPosition = Offset(_cpuPosition.dx - _cpuSpeed, _cpuPosition.dy);
+      cpuMoveX = _cpuSpeed;
+    } else if (_cpuPosition.dx > _puckPosition.dx) {
+      cpuMoveX = -_cpuSpeed;
     }
 
     if (_cpuPosition.dy < _puckPosition.dy) {
-      _cpuPosition = Offset(_cpuPosition.dx, _cpuPosition.dy + _cpuSpeed);
-    } else {
-      _cpuPosition = Offset(_cpuPosition.dx, _cpuPosition.dy - _cpuSpeed);
+      cpuMoveY = _cpuSpeed;
+    } else if (_cpuPosition.dy > _puckPosition.dy) {
+      cpuMoveY = -_cpuSpeed;
     }
 
     _cpuPosition = Offset(
-      _cpuPosition.dx.clamp(0, 360),
-      _cpuPosition.dy.clamp(0, 230),
+      (_cpuPosition.dx + cpuMoveX).clamp(0, 360),
+      (_cpuPosition.dy + cpuMoveY).clamp(0, 185),
     );
   }
 
@@ -196,6 +247,8 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
     _puckPosition = Offset(190.0, 230.0);
     _puckSpeedX = (Random().nextBool() ? 6.0 : -6.0);
     _puckSpeedY = (Random().nextBool() ? 6.0 : -6.0);
+    _initialBounce = true;
+    _cpuHitPuck = false;
   }
 
   void _showGameOverDialog() {
@@ -253,29 +306,15 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
                   decoration: BoxDecoration(
                     color: Colors.transparent,
                     border: Border(
-                      top: BorderSide(color: Colors.purple, width: 2),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 140,
-                bottom: 0,
-                child: Container(
-                  width: 100,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    border: Border(
                       bottom: BorderSide(color: Colors.purple, width: 2),
                     ),
                   ),
                 ),
               ),
-
+              // Center line
               Positioned(
                 left: 0,
-                top: 230,
+                top: 250,
                 child: Container(
                   width: 400,
                   height: 2,
@@ -295,7 +334,6 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
                   ),
                 ),
               ),
-
               Positioned(
                 left: 100,
                 bottom: 0,
@@ -310,7 +348,6 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
                   ),
                 ),
               ),
-
               Positioned(
                 left: 100,
                 top: 0,
@@ -342,7 +379,6 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
                   style: TextStyle(color: Colors.purple, fontSize: 30),
                 ),
               ),
-
               Positioned(
                 left: _puckPosition.dx,
                 top: _puckPosition.dy,
@@ -363,7 +399,6 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
                   ),
                 ),
               ),
-
               Positioned(
                 left: _playerPosition.dx,
                 top: _playerPosition.dy,
@@ -395,7 +430,6 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
                   ),
                 ),
               ),
-
               Positioned(
                 left: _cpuPosition.dx,
                 top: _cpuPosition.dy,
