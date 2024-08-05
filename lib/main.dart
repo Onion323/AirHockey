@@ -336,12 +336,11 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
       _bouncePuck(_playerPosition);
       _cpuPuckTimer?.cancel();
       _cpuHitPuck = false;
-      _movingBackward = false; // Reset backward movement when player hits puck
+      _movingBackward = false;
     } else if (_checkCollision(_cpuPosition, _puckPosition)) {
       _bouncePuck(_cpuPosition);
       _cpuHitPuck = true;
-      _moveCpuBackward(); // Move CPU backward
-    }
+      _moveCpuBackward();
 
     _puckPosition = Offset(newX, newY);
   }
