@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "437331066450",
+    "project_id": "air-hockey-project",
+    "storage_bucket": "air-hockey-project.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:437331066450:android:0a93e01cfb5d471f02298b",
+        "android_client_info": {
+          "package_name": "com.example.airhockey"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPtjPf2o3aqxRVBBeejFO7xoBVYgV1as8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
