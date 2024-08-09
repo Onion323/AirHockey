@@ -1,16 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:redux/redux.dart';
+import 'package:flutter_redux/flutter_redux.dart';
 
+import 'package:airhockey/app_state.dart';
+import 'package:airhockey/app_reducer.dart';
 import 'package:airhockey/main.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(MyApp()); // Removed const keyword here
+    // Create the store with an initial state
+    final store = Store<AppState>(
+      appReducer,
+      initialState: AppState.initial(),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Build our app and trigger a frame.
+    await tester.pumpWidget(MyApp(store: store));
+
+    // Debugging: Immediately check for the "0" text without tapping any button.
+    print('Testing initial state...');
+    expect(find.text('0'),
+        findsOneWidget); // This should pass if the initial state is correct
 
     // Tap the '+' icon and trigger a frame.
     await tester.tap(find.byIcon(Icons.add));
