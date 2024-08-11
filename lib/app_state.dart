@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 class LeaderboardEntry {
   final String name;
   final int time;

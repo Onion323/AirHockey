@@ -2,8 +2,14 @@ import 'app_state.dart';
 
 class LoadLeaderboardAction {}
 
-class LeaderboardLoadedAction {
+class AddLeaderboardEntryAction {
+  final LeaderboardEntry leaderboardEntry;
+
+  AddLeaderboardEntryAction(this.leaderboardEntry);
+}
+
+class UpdateLeaderboardAction {
   final List<LeaderboardEntry> leaderboard;
 
-  LeaderboardLoadedAction(this.leaderboard);
+  UpdateLeaderboardAction(this.leaderboard);
 }

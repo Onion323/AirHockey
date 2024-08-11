@@ -20,7 +20,7 @@ class DifficultySelectionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Select Difficulty'),
+        title: const Text('Select Difficulty'),
       ),
       body: Center(
         child: Column(
@@ -28,15 +28,15 @@ class DifficultySelectionScreen extends StatelessWidget {
           children: [
             ElevatedButton(
               onPressed: () => _startGame(context, Difficulty.easy),
-              child: Text('Easy'),
+              child: const Text('Easy'),
             ),
             ElevatedButton(
               onPressed: () => _startGame(context, Difficulty.medium),
-              child: Text('Medium'),
+              child: const Text('Medium'),
             ),
             ElevatedButton(
               onPressed: () => _startGame(context, Difficulty.hard),
-              child: Text('Hard'),
+              child: const Text('Hard'),
             ),
           ],
         ),

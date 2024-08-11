@@ -5,6 +5,8 @@ import 'leaderboard_screen.dart';
 class NameInputScreen extends StatelessWidget {
   final TextEditingController _nameController = TextEditingController();
 
+  NameInputScreen({Key? key}) : super(key: key);
+
   void _proceedToDifficultySelection(BuildContext context) {
     final playerName = _nameController.text.trim();
     if (playerName.isNotEmpty) {
@@ -17,7 +19,7 @@ class NameInputScreen extends StatelessWidget {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter your name to continue')),
+        const SnackBar(content: Text('Please enter your name to continue')),
       );
     }
   }
@@ -25,14 +27,14 @@ class NameInputScreen extends StatelessWidget {
   void _navigateToLeaderboard(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => LeaderboardScreen()),
+      MaterialPageRoute(builder: (context) => const LeaderboardScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Enter Your Name')),
+      appBar: AppBar(title: const Text('Enter Your Name')),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -41,17 +43,17 @@ class NameInputScreen extends StatelessWidget {
             children: [
               TextField(
                 controller: _nameController,
-                decoration: InputDecoration(hintText: "Player Name"),
+                decoration: const InputDecoration(hintText: "Player Name"),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () => _proceedToDifficultySelection(context),
-                child: Text('Proceed'),
+                child: const Text('Proceed'),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () => _navigateToLeaderboard(context),
-                child: Text('Leaderboard'),
+                child: const Text('Leaderboard'),
               ),
             ],
           ),

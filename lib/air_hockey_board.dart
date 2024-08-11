@@ -1,27 +1,31 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:airhockey/app_actions.dart';
+import 'package:airhockey/app_state.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_redux/flutter_redux.dart';
 import 'difficulty_selection_screen.dart';
 
 class AirHockeyBoard extends StatefulWidget {
   final Difficulty difficulty;
   final String playerName;
 
-  AirHockeyBoard({Key? key, required this.difficulty, required this.playerName})
+  const AirHockeyBoard(
+      {Key? key, required this.difficulty, required this.playerName})
       : super(key: key);
 
   @override
-  _AirHockeyBoardState createState() => _AirHockeyBoardState();
+  State<AirHockeyBoard> createState() => _AirHockeyBoardState();
 }
 
 class _AirHockeyBoardState extends State<AirHockeyBoard> {
-  Offset _playerPosition = Offset(180.0, 430.0);
-  Offset _cpuPosition = Offset(180.0, 30.0);
-  Offset _puckPosition = Offset(190.0, 230.0);
+  Offset _playerPosition = const Offset(180.0, 430.0);
+  final Offset _cpuPosition = const Offset(180.0, 30.0);
+  Offset _puckPosition = const Offset(190.0, 230.0);
   int _playerScore = 0;
   int _cpuScore = 0;
-  Offset _puckVelocity = Offset(3.0, 3.0);
+  Offset _puckVelocity = const Offset(3.0, 3.0);
   late Timer _gameTimer;
   late double _boardWidth;
   late double _boardHeight;
@@ -33,7 +37,7 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
   }
 
   void _startGameLoop() {
-    _gameTimer = Timer.periodic(Duration(milliseconds: 16), (timer) {
+    _gameTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
       setState(() {
         _updatePuckPosition();
         _checkCollisions();
@@ -82,20 +86,19 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
   }
 
   void _saveScore() async {
-    final firestore = FirebaseFirestore.instance;
-    await firestore.collection('leaderboard').add({
-      'name': widget.playerName,
-      'difficulty': widget.difficulty.toString().split('.').last,
-      'score': _playerScore,
-      'timestamp': Timestamp.now(),
-    });
+    final store = StoreProvider.of<AppState>(context);
+    store.dispatch(AddLeaderboardEntryAction(LeaderboardEntry(
+        name: widget.playerName,
+        time: _playerScore,
+        difficulty: widget.difficulty.toString().split('.').last,
+        timestamp: Timestamp.now())));
   }
 
   void _showGameOverDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Game Over'),
+        title: const Text('Game Over'),
         content: Text(
           _playerScore > _cpuScore ? 'You Win!' : 'You Lose!',
         ),
@@ -105,7 +108,7 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
               Navigator.of(context).pop();
               Navigator.of(context).pop();
             },
-            child: Text('OK'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -136,7 +139,7 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
                 child: Container(
                   width: 60,
                   height: 60,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.green,
                     shape: BoxShape.circle,
                   ),
@@ -148,7 +151,7 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
                 child: Container(
                   width: 60,
                   height: 60,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.red,
                     shape: BoxShape.circle,
                   ),
@@ -160,7 +163,7 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
                 child: Container(
                   width: 40,
                   height: 40,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
                   ),
@@ -171,7 +174,7 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
                 left: 20,
                 child: Text(
                   'Score: $_playerScore',
-                  style: TextStyle(color: Colors.white, fontSize: 24),
+                  style: const TextStyle(color: Colors.white, fontSize: 24),
                 ),
               ),
               Positioned(
@@ -179,7 +182,7 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
                 right: 20,
                 child: Text(
                   'CPU: $_cpuScore',
-                  style: TextStyle(color: Colors.white, fontSize: 24),
+                  style: const TextStyle(color: Colors.white, fontSize: 24),
                 ),
               ),
             ],

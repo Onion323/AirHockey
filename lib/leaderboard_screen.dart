@@ -1,7 +1,7 @@
+import 'package:airhockey/app_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'app_state.dart';
-import 'leaderboard_middleware.dart';
 import 'leaderboard_list.dart';
 
 class LeaderboardScreen extends StatelessWidget {
@@ -13,8 +13,8 @@ class LeaderboardScreen extends StatelessWidget {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Leaderboard'),
-          bottom: TabBar(
+          title: const Text('Leaderboard'),
+          bottom: const TabBar(
             tabs: [
               Tab(text: 'Easy'),
               Tab(text: 'Medium'),
