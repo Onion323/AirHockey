@@ -1,42 +1,245 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:redux/redux.dart';
+import 'package:flutter_redux/flutter_redux.dart';
 import 'dart:async';
 import 'dart:math';
+import 'firebase_options.dart';
+import 'app_state.dart';
+import 'app_reducer.dart';
+import 'leaderboard_middleware.dart';
 
-void main() {
-  runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  final store = Store<AppState>(
+    appReducer,
+    initialState: AppState.initial(),
+    middleware: [LeaderboardMiddleware()],
+  );
+
+  runApp(MyApp(store: store));
 }
 
 class MyApp extends StatelessWidget {
-  MyApp({Key? key}) : super(key: key);
+  final Store<AppState> store;
+
+  const MyApp({Key? key, required this.store}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Neon Air Hockey',
-      theme: ThemeData(
-        scaffoldBackgroundColor: Colors.black,
-        colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: Colors.orange,
-          backgroundColor: Colors.black,
-          accentColor: Colors.green,
-          cardColor: Colors.orange,
-          brightness: Brightness.dark,
+    return StoreProvider<AppState>(
+      store: store,
+      child: MaterialApp(
+        title: 'Neon Air Hockey',
+        theme: ThemeData(
+          scaffoldBackgroundColor: Colors.black,
+          colorScheme: ColorScheme.fromSwatch(
+            primarySwatch: Colors.orange,
+            backgroundColor: Colors.black,
+            accentColor: Colors.green,
+            cardColor: Colors.orange,
+            brightness: Brightness.dark,
+          ),
+          visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+        home: NameInputScreen(),
       ),
-      home: DifficultySelectionScreen(),
+    );
+  }
+}
+
+class NameInputScreen extends StatelessWidget {
+  final TextEditingController _nameController = TextEditingController();
+
+  void _proceedToDifficultySelection(BuildContext context) {
+    final playerName = _nameController.text.trim();
+    if (playerName.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              DifficultySelectionScreen(playerName: playerName),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter your name to continue')),
+      );
+    }
+  }
+
+  void _navigateToLeaderboard(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => LeaderboardScreen()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Enter Your Name')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextField(
+                controller: _nameController,
+                decoration: InputDecoration(hintText: "Player Name"),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => _proceedToDifficultySelection(context),
+                child: Text('Proceed'),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => _navigateToLeaderboard(context),
+                child: Text('Leaderboard'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class LeaderboardScreen extends StatelessWidget {
+  const LeaderboardScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Leaderboard'),
+          bottom: TabBar(
+            tabs: [
+              Tab(text: 'Easy'),
+              Tab(text: 'Medium'),
+              Tab(text: 'Hard'),
+            ],
+          ),
+        ),
+        body: StoreConnector<AppState, List<LeaderboardEntry>>(
+          onInit: (store) => store.dispatch(LoadLeaderboardAction()),
+          converter: (store) => store.state.leaderboard,
+          builder: (context, leaderboard) {
+            return TabBarView(
+              children: [
+                LeaderboardList(
+                  difficulty: 'easy',
+                  leaderboard: leaderboard
+                      .where((entry) => entry.difficulty == 'easy')
+                      .toList(),
+                ),
+                LeaderboardList(
+                  difficulty: 'medium',
+                  leaderboard: leaderboard
+                      .where((entry) => entry.difficulty == 'medium')
+                      .toList(),
+                ),
+                LeaderboardList(
+                  difficulty: 'hard',
+                  leaderboard: leaderboard
+                      .where((entry) => entry.difficulty == 'hard')
+                      .toList(),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class LeaderboardList extends StatelessWidget {
+  final String difficulty;
+  final List<LeaderboardEntry> leaderboard;
+
+  const LeaderboardList(
+      {Key? key, required this.difficulty, required this.leaderboard})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    if (leaderboard.isEmpty) {
+      return Center(child: Text('No records found'));
+    }
+
+    return ListView.builder(
+      itemCount: leaderboard.length,
+      itemBuilder: (context, index) {
+        final entry = leaderboard[index];
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+          child: ListTile(
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '${index + 1}',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            title: Text(
+              entry.name,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            subtitle: Text(
+              'Time: ${entry.time} seconds\nTimestamp: ${entry.timestamp}',
+              style: TextStyle(
+                color: Colors.white70,
+              ),
+            ),
+            trailing: Icon(
+              Icons.star,
+              color: Colors.white,
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
 class DifficultySelectionScreen extends StatelessWidget {
-  const DifficultySelectionScreen({Key? key}) : super(key: key);
+  final String playerName;
+  const DifficultySelectionScreen({Key? key, required this.playerName})
+      : super(key: key);
 
   void _startGame(BuildContext context, Difficulty difficulty) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AirHockeyBoard(difficulty: difficulty),
+        builder: (context) =>
+            AirHockeyBoard(difficulty: difficulty, playerName: playerName),
       ),
     );
   }
@@ -74,7 +277,10 @@ enum Difficulty { easy, medium, hard }
 
 class AirHockeyBoard extends StatefulWidget {
   final Difficulty difficulty;
-  AirHockeyBoard({Key? key, required this.difficulty}) : super(key: key);
+  final String playerName;
+
+  AirHockeyBoard({Key? key, required this.difficulty, required this.playerName})
+      : super(key: key);
 
   @override
   _AirHockeyBoardState createState() => _AirHockeyBoardState();
@@ -87,20 +293,21 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
   int _playerScore = 0;
   int _cpuScore = 0;
   late Timer _timer;
+  Timer? _cpuPuckTimer;
   double _puckSpeedX = 6.0;
   double _puckSpeedY = 6.0;
   double _cpuSpeed = 2.0;
-  bool _initialBounce = true;
   bool _cpuHitPuck = false;
   bool _movingBackward = false;
-
-  Offset _puckPositionBeforeHit = Offset(0, 0);
+  late DateTime _startTime;
+  Duration _elapsedTime = Duration.zero;
 
   @override
   void initState() {
     super.initState();
     _setDifficulty();
     _startGameLoop();
+    _startTime = DateTime.now();
   }
 
   void _setDifficulty() {
@@ -123,6 +330,7 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
         _updatePuckPosition();
         _updateCpuPosition();
         _checkGoal();
+        _elapsedTime = DateTime.now().difference(_startTime);
       });
     });
   }
@@ -144,13 +352,13 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
 
     if (_checkCollision(_playerPosition, _puckPosition)) {
       _bouncePuck(_playerPosition);
-      newY = _puckPosition.dy + _puckSpeedY;
+      _cpuPuckTimer?.cancel();
       _cpuHitPuck = false;
+      _movingBackward = false; // Reset backward movement when player hits puck
     } else if (_checkCollision(_cpuPosition, _puckPosition)) {
-      _puckPositionBeforeHit = _puckPosition;
       _bouncePuck(_cpuPosition);
       _cpuHitPuck = true;
-      _moveCpuBackward();
+      _moveCpuBackward(); // Move CPU backward
     }
 
     _puckPosition = Offset(newX, newY);
@@ -166,10 +374,6 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
   void _bouncePuck(Offset paddlePosition) {
     double angle = atan2(_puckPosition.dy - paddlePosition.dy,
         _puckPosition.dx - paddlePosition.dx);
-    if (_initialBounce) {
-      angle = (Random().nextDouble() * (60 - 30) + 30) * pi / 180;
-      _initialBounce = false;
-    }
     _puckSpeedX = 6.0 * cos(angle);
     _puckSpeedY = 6.0 * sin(angle);
   }
@@ -177,32 +381,24 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
   void _moveCpuBackward() {
     if (!_movingBackward) {
       _movingBackward = true;
-      Timer.periodic(Duration(milliseconds: 20), (timer) {
+      _cpuPuckTimer = Timer.periodic(Duration(milliseconds: 20), (timer) {
         setState(() {
-          _cpuPosition = Offset(_cpuPosition.dx, _cpuPosition.dy - 2);
-          if (_cpuPosition.dy <= 0) {
+          if (_cpuPosition.dy > 5) {
+            _cpuPosition = Offset(_cpuPosition.dx, _cpuPosition.dy - 2);
+          } else {
             _movingBackward = false;
+            _cpuHitPuck = false; // Reset flag
             timer.cancel();
-            _moveCpuForward();
           }
         });
       });
     }
   }
 
-  void _moveCpuForward() {
-    Timer.periodic(Duration(milliseconds: 10), (timer) {
-      setState(() {
-        _cpuPosition = Offset(_cpuPosition.dx, _cpuPosition.dy + 4);
-        if (_cpuPosition.dy >= 30) {
-          timer.cancel();
-        }
-      });
-    });
-  }
-
   void _updateCpuPosition() {
-    if (_movingBackward || _cpuHitPuck) return;
+    if (_movingBackward) {
+      return; // Skip if CPU is moving backward
+    }
 
     double cpuMoveX = 0;
     double cpuMoveY = 0;
@@ -229,12 +425,12 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
     if (_puckPosition.dy <= 20 &&
         _puckPosition.dx >= 140 &&
         _puckPosition.dx <= 240) {
-      _cpuScore++;
+      _playerScore++; // Change this line to increment player score
       _resetPuck();
     } else if (_puckPosition.dy >= 440 &&
         _puckPosition.dx >= 140 &&
         _puckPosition.dx <= 240) {
-      _playerScore++;
+      _cpuScore++; // Change this line to increment CPU score
       _resetPuck();
     }
 
@@ -247,12 +443,15 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
     _puckPosition = Offset(190.0, 230.0);
     _puckSpeedX = (Random().nextBool() ? 6.0 : -6.0);
     _puckSpeedY = (Random().nextBool() ? 6.0 : -6.0);
-    _initialBounce = true;
     _cpuHitPuck = false;
+    _movingBackward = false; // Reset _movingBackward flag when resetting puck
   }
 
   void _showGameOverDialog() {
     String winner = _playerScore == 7 ? 'Player' : 'CPU';
+    if (_playerScore == 7) {
+      _recordPlayerTime();
+    }
     showDialog(
       context: context,
       builder: (context) {
@@ -272,6 +471,21 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
       },
     );
     _timer.cancel();
+  }
+
+  void _recordPlayerTime() async {
+    final endTime = DateTime.now();
+    final duration = endTime.difference(_startTime).inSeconds;
+
+    await FirebaseFirestore.instance.collection('game_records').add({
+      'name': widget.playerName,
+      'time': duration,
+      'difficulty': widget.difficulty
+          .toString()
+          .split('.')
+          .last, // Store difficulty level
+      'timestamp': endTime,
+    });
   }
 
   @override
@@ -296,7 +510,6 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
           ),
           child: Stack(
             children: [
-              // Goals
               Positioned(
                 left: 140,
                 top: 0,
@@ -311,7 +524,6 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
                   ),
                 ),
               ),
-              // Center line
               Positioned(
                 left: 0,
                 top: 250,
@@ -321,7 +533,6 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
                   color: Colors.purple,
                 ),
               ),
-              // Center circle
               Positioned(
                 left: 150,
                 top: 180,
@@ -362,7 +573,6 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
                   ),
                 ),
               ),
-              // Scores
               Positioned(
                 left: 20,
                 top: 210,
@@ -448,6 +658,14 @@ class _AirHockeyBoardState extends State<AirHockeyBoard> {
                       ),
                     ],
                   ),
+                ),
+              ),
+              Positioned(
+                right: 20,
+                top: 20,
+                child: Text(
+                  '${_elapsedTime.inSeconds}s',
+                  style: TextStyle(color: Colors.white, fontSize: 20),
                 ),
               ),
             ],
